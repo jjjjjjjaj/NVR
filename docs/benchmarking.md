@@ -21,6 +21,12 @@ If a backend requires a different quantization or model conversion, label it as 
 6. Report median, minimum, maximum, and dispersion (standard deviation or IQR). Preserve raw per-run data.
 7. Alternate runner order or repeat the sequence to reduce thermal/order bias.
 
+## Qwen3.8-27B efficient preset
+
+The Qwen3.8-27B preset uses an 8192-token context, logical batch 256, physical batch (ubatch) 128, Flash Attention, F16 KV cache, and a request to offload all layers to the GPU. The reduced batch sizes are intended to lower temporary compute-buffer memory use.
+
+This is a configuration change, not proof of a particular memory saving. Do not publish a fixed VRAM/RAM reduction or a speed improvement until matched trials have been completed. Compare against LM Studio using the same GGUF file, context, batch/ubatch, GPU offload, KV cache, prompt, output length, and backend build wherever possible. If LM Studio does not expose an equivalent setting, document the difference.
+
 ## 20% target
 
 For a given workload, the generation-throughput target is:
