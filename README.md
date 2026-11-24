@@ -19,7 +19,7 @@ NVR sits above optimized inference engines rather than reimplementing CUDA kerne
 
 | Target | Initial treatment | Status |
 |---|---|---|
-| Qwen3.8-27B | Local GGUF launch through llama.cpp | Initial launcher available; exact model file must be supplied by user |
+| Qwen3.8-27B | Local GGUF launch through llama.cpp with a memory-conscious preset | Efficient preset available; requires benchmark validation |
 | “inlinking mini 2” | Placeholder pending exact model ID | Disabled until identity is confirmed |
 | DeepSeek V4.1 Flash 1017 | Provider/model integration profile | Local weight availability not established |
 | GLM 5.3 Flash | Compatibility profile | Requires artifact and architecture verification |
@@ -50,22 +50,24 @@ Pass the full path to the actual GGUF file you downloaded:
 .\\target\\release\\nvr.exe run qwen3_8_27b --model "D:\\Models\\your-qwen-model.gguf"
 ```
 
-Replace the example path with the real GGUF path. Defaults:
+Replace the example path with the real GGUF path. The Qwen3.8-27B memory-conscious defaults are:
 - GPU layers: 999 (request all layers on GPU)
 - Context: 8192
-- Logical batch: 512
-- Physical batch / ubatch: 512
+- Logical batch: 256
+- Physical batch / ubatch: 128
 - Flash Attention: on
 - KV cache K/V: F16
 - Host: 127.0.0.1 (local machine only)
 - Port: 1234
+
+The smaller batch and micro-batch settings are intended to reduce temporary compute-buffer memory. They may affect prompt-processing throughput; measure both memory and speed before choosing a final preset. They do not guarantee a fixed VRAM or RAM reduction.
 
 Open `http://127.0.0.1:1234` after the server reports that it is listening. Keep the NVR terminal open; press Ctrl+C there to stop the server.
 
 Optional overrides:
 
 ```powershell
-.\\target\\release\\nvr.exe run qwen3_8_27b --model "D:\\Models\\your-model.gguf" --backend "C:\\path\\to\\llama-server.exe" --port 1234 --ctx 8192 --batch 512 --ubatch 512 --gpu-layers 999
+.\\target\\release\\nvr.exe run qwen3_8_27b --model "D:\\Models\\your-model.gguf" --backend "C:\\path\\to\\llama-server.exe" --port 1234 --ctx 8192 --batch 256 --ubatch 128 --gpu-layers 999
 ```
 
 Environment overrides:
