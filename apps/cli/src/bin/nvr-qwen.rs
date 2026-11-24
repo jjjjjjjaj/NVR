@@ -77,8 +77,8 @@ fn run() -> Result<()> {
     println!("Press Ctrl+C here to stop the server.");
     println!();
 
-    let status = launch_llama_server(&backend, &config)
-        .context("Failed to launch the llama.cpp backend")?;
+    let status =
+        launch_llama_server(&backend, &config).context("Failed to launch the llama.cpp backend")?;
 
     if !status.success() {
         anyhow::bail!("llama-server exited with status {status}");
@@ -112,9 +112,21 @@ fn discover_qwen_model() -> Result<Option<PathBuf>> {
     let mut candidates = Vec::new();
     collect_qwen_candidates(&root, 0, &mut candidates)?;
     candidates.sort_by(|a, b| {
-        let a_q4 = a.file_name().and_then(|s| s.to_str()).unwrap_or("").to_ascii_lowercase().contains("q4_k_m");
-        let b_q4 = b.file_name().and_then(|s| s.to_str()).unwrap_or("").to_ascii_lowercase().contains("q4_k_m");
-        b_q4.cmp(&a_q4).then_with(|| a.to_string_lossy().cmp(&b.to_string_lossy()))
+        let a_q4 = a
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .to_ascii_lowercase()
+            .contains("q4_k_m");
+        let b_q4 = b
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .to_ascii_lowercase()
+            .contains("q4_k_m");
+        b_q4
+            .cmp(&a_q4)
+            .then_with(|| a.to_string_lossy().cmp(&b.to_string_lossy()))
     });
 
     if candidates.len() > 1 {
@@ -133,7 +145,8 @@ fn collect_qwen_candidates(dir: &Path, depth: usize, output: &mut Vec<PathBuf>) 
     let entries = match fs::read_dir(dir) {
         Ok(entries) => entries,
         Err(error) if depth == 0 => {
-            return Err(error).with_context(|| format!("Could not scan model directory {}", dir.display()));
+            return Err(error)
+                .with_context(|| format!("Could not scan model directory {}", dir.display()));
         }
         Err(_) => return Ok(()), // Skip inaccessible nested directories.
     };
@@ -147,10 +160,18 @@ fn collect_qwen_candidates(dir: &Path, depth: usize, output: &mut Vec<PathBuf>) 
         if file_type.is_dir() {
             collect_qwen_candidates(&path, depth + 1, output)?;
         } else if file_type.is_file() {
-            let filename = path.file_name().and_then(|s| s.to_str()).unwrap_or("").to_ascii_lowercase();
+            let filename = path
+                .file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or("")
+                .to_ascii_lowercase();
             if filename.ends_with(".gguf")
                 && filename.contains("qwen")
-                && (filename.contains("27b") || path.to_string_lossy().to_ascii_lowercase().contains("qwen3.8-27b"))
+                && (filename.contains("27b")
+                    || path
+                        .to_string_lossy()
+                        .to_ascii_lowercase()
+                        .contains("qwen3.8-27b"))
             {
                 output.push(path);
             }
@@ -175,7 +196,11 @@ mod tests {
         let mut found = Vec::new();
         collect_qwen_candidates(&root, 0, &mut found).unwrap();
         assert_eq!(found.len(), 1);
-        assert!(found[0].file_name().unwrap().to_string_lossy().contains("Qwen3.8-27B"));
+        assert!(found[0]
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .contains("Qwen3.8-27B"));
         let _ = fs::remove_dir_all(root);
     }
 }
