@@ -99,10 +99,7 @@ fn discover_lm_studio_cuda13_backend() -> Result<PathBuf> {
         .filter_map(|entry| {
             let name = entry.file_name().to_string_lossy().to_ascii_lowercase();
             let path = entry.path();
-            if name.starts_with("llama.cpp-")
-                && name.contains("cuda13")
-                && path.is_dir()
-            {
+            if name.starts_with("llama.cpp-") && name.contains("cuda13") && path.is_dir() {
                 let server = path.join(server_executable_name());
                 if server.is_file() {
                     return Some((name, server));
@@ -114,11 +111,9 @@ fn discover_lm_studio_cuda13_backend() -> Result<PathBuf> {
 
     // Prefer the lexicographically newest versioned backend directory.
     candidates.sort_by(|left, right| right.0.cmp(&left.0));
-    candidates
-        .into_iter()
-        .next()
-        .map(|(_, path)| path)
-        .context("No LM Studio CUDA 13 llama-server.exe was found. Pass --backend with its full path.")
+    candidates.into_iter().next().map(|(_, path)| path).context(
+        "No LM Studio CUDA 13 llama-server.exe was found. Pass --backend with its full path.",
+    )
 }
 
 /// Start llama-server with the NVR Qwen benchmark preset.
@@ -200,7 +195,11 @@ fn build_llama_server_command(
 
 /// Locate nvidia-smi using PATH. This is a diagnostic, not a CUDA capability test.
 pub fn nvidia_smi_path() -> Option<PathBuf> {
-    let executable = if cfg!(windows) { "nvidia-smi.exe" } else { "nvidia-smi" };
+    let executable = if cfg!(windows) {
+        "nvidia-smi.exe"
+    } else {
+        "nvidia-smi"
+    };
     env::var_os("PATH")
         .into_iter()
         .flat_map(|paths| env::split_paths(&paths).collect::<Vec<_>>())
