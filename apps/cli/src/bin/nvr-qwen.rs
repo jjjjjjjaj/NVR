@@ -124,8 +124,7 @@ fn discover_qwen_model() -> Result<Option<PathBuf>> {
             .unwrap_or("")
             .to_ascii_lowercase()
             .contains("q4_k_m");
-        b_q4
-            .cmp(&a_q4)
+        b_q4.cmp(&a_q4)
             .then_with(|| a.to_string_lossy().cmp(&b.to_string_lossy()))
     });
 
