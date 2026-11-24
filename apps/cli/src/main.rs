@@ -29,8 +29,8 @@ fn run() -> Result<()> {
             eprintln!("  --backend <path>       Path to llama-server.exe or its folder");
             eprintln!("  --port <port>          Local server port (default: 1234)");
             eprintln!("  --ctx <tokens>         Context size (default: 8192)");
-            eprintln!("  --batch <tokens>       Logical batch size (default: 512)");
-            eprintln!("  --ubatch <tokens>      Physical batch size (default: 512)");
+            eprintln!("  --batch <tokens>       Logical batch size (default: 256)");
+            eprintln!("  --ubatch <tokens>      Physical batch size (default: 128)");
             eprintln!("  --gpu-layers <count>   GPU layers (default: 999 = offload all)");
             bail!("Missing or unknown command")
         }
@@ -74,8 +74,11 @@ fn run_model(args: Vec<String>) -> Result<()> {
     let mut backend_path: Option<PathBuf> = None;
     let mut port: u16 = 1234;
     let mut context_size: u32 = 8192;
-    let mut batch_size: u32 = 512;
-    let mut ubatch_size: u32 = 512;
+    // Qwen3.8-27B memory-conscious defaults: smaller micro-batches reduce
+    // temporary compute-buffer allocation while retaining the same model,
+    // quantization, context window, and full-GPU offload request.
+    let mut batch_size: u32 = 256;
+    let mut ubatch_size: u32 = 128;
     let mut gpu_layers: u32 = 999;
 
     while let Some(flag) = args.next() {
