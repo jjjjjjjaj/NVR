@@ -2,29 +2,50 @@
 
 **A Windows-first local LLM inference runner focused on measured performance.**
 
-NVR sits above optimized inference engines rather than reimplementing CUDA kernels. The first backend target is [llama.cpp](https://github.com/ggml-org/llama.cpp) with CUDA; later adapters can add ExLlamaV3 and TensorRT-LLM.
+NVR launches optimized inference backends rather than reimplementing CUDA kernels. The initial backend is [llama.cpp](https://github.com/ggml-org/llama.cpp) with CUDA.
 
-> **Status: early implementation.** NVR includes NVIDIA diagnostics and an initial llama.cpp CUDA 13 launch path for Qwen GGUF files. Benchmark automation and the desktop UI are not yet implemented.
+> **Status: early implementation.** NVR includes NVIDIA diagnostics and a llama.cpp CUDA launch path for Qwen GGUF files. Benchmark automation and the desktop UI are not yet implemented.
 
-## Goals
+## Qwen3.8-27B Efficient Profile
 
-- Detect NVIDIA GPU, driver, VRAM, and runtime environment.
-- Launch existing inference backends with validated configurations.
-- Benchmark prompt processing and token generation separately.
-- Measure TTFT, inter-token latency, throughput, peak VRAM/RAM, and run metadata.
-- Search configurations safely and retain reproducible results.
-- Offer a CLI first, then a desktop GUI and OpenAI-compatible local API.
+NVR includes a dedicated memory-conscious launch profile for **Qwen3.8-27B**. It is intended to reduce temporary inference-buffer use while keeping the selected GGUF file, quantization, and context size unchanged.
 
-## Model targets
+| Setting | Default |
+|---|---:|
+| Context size | 8,192 tokens |
+| GPU layers | 999 (request all layers on GPU) |
+| Logical batch | 256 |
+| Physical batch / micro-batch | 128 |
+| Flash Attention | Enabled when supported by the backend |
+| KV cache K/V | F16 |
+| Bind address | 127.0.0.1 |
+| Port | 1234 |
+
+The batch and micro-batch defaults are selected to limit temporary compute-buffer allocation. Actual VRAM and RAM use depends on the GGUF, backend build, context, and runtime conditions. **No fixed memory saving or benchmark result is claimed by this profile.** The 4 GB VRAM and 3.5 GB system-RAM reductions are goals that require a matched baseline measurement before they can be reported as achieved results.
+
+Run the profile with:
+
+```powershell
+.\target\release\nvr.exe run qwen3_8_27b --model "D:\Models\your-qwen-model.gguf"
+```
+
+Replace the example with the full path to the local GGUF file. Optional overrides:
+
+```powershell
+.\target\release\nvr.exe run qwen3_8_27b --model "D:\Models\your-model.gguf" --ctx 8192 --batch 256 --ubatch 128 --gpu-layers 999
+```
+
+NVR does not download model weights. It launches the exact local GGUF path supplied.
+
+## Other model targets
 
 | Target | Initial treatment | Status |
 |---|---|---|
-| Qwen3.8-27B | Local GGUF launch through llama.cpp with a memory-conscious preset | Efficient preset available; requires benchmark validation |
-| “inlinking mini 2” | Placeholder pending exact model ID | Disabled until identity is confirmed |
+| “inlinking mini 2” | Pending exact model ID | Disabled until identity is confirmed |
 | DeepSeek V4.1 Flash 1017 | Provider/model integration profile | Local weight availability not established |
 | GLM 5.3 Flash | Compatibility profile | Requires artifact and architecture verification |
 
-The **20% target** applies only to Qwen3.8-27B and the confirmed Mini 2 model, on the same machine and under matched conditions. It means at least 1.20× llama.cpp generation throughput (output tokens/s) at the same quality, model revision, quantization, context, prompt, and decoding settings. This is a target, **not a claimed result**. Report prompt processing, TTFT, and latency separately; never trade away correctness or silently change quantization to manufacture a win.
+The **20% throughput target** applies only to Qwen3.8-27B and the confirmed Mini 2 model, under matched conditions. It means at least 1.20× llama.cpp generation throughput (output tokens/s) at the same quality, model revision, quantization, context, prompt, and decoding settings. This is a target, **not a claimed result**. Prompt processing, time to first token, and latency must be reported separately.
 
 ## Build
 
@@ -34,47 +55,21 @@ Install Rust stable, then from the repository root:
 cargo build --release
 ```
 
-The executable is `target\\release\\nvr.exe`.
+The executable is `target\release\nvr.exe`.
 
-## Run Qwen3.8-27B
+## Backend discovery
 
 NVR can discover a CUDA 13 llama.cpp backend under:
 
-`%USERPROFILE%\\.lmstudio\\extensions\\backends\\llama.cpp-*-cuda13-*\\llama-server.exe`
+`%USERPROFILE%\.lmstudio\extensions\backends\llama.cpp-*-cuda13-*\llama-server.exe`
 
 It also locates the LM Studio CUDA vendor DLL directory and adds it to the child process PATH. No system-wide PATH edit is required.
 
-Pass the full path to the actual GGUF file you downloaded:
-
-```powershell
-.\\target\\release\\nvr.exe run qwen3_8_27b --model "D:\\Models\\your-qwen-model.gguf"
-```
-
-Replace the example path with the real GGUF path. The Qwen3.8-27B memory-conscious defaults are:
-- GPU layers: 999 (request all layers on GPU)
-- Context: 8192
-- Logical batch: 256
-- Physical batch / ubatch: 128
-- Flash Attention: on
-- KV cache K/V: F16
-- Host: 127.0.0.1 (local machine only)
-- Port: 1234
-
-The smaller batch and micro-batch settings are intended to reduce temporary compute-buffer memory. They may affect prompt-processing throughput; measure both memory and speed before choosing a final preset. They do not guarantee a fixed VRAM or RAM reduction.
-
 Open `http://127.0.0.1:1234` after the server reports that it is listening. Keep the NVR terminal open; press Ctrl+C there to stop the server.
-
-Optional overrides:
-
-```powershell
-.\\target\\release\\nvr.exe run qwen3_8_27b --model "D:\\Models\\your-model.gguf" --backend "C:\\path\\to\\llama-server.exe" --port 1234 --ctx 8192 --batch 256 --ubatch 128 --gpu-layers 999
-```
 
 Environment overrides:
 - `NVR_LLAMA_SERVER`: full path to llama-server.exe (or its directory)
 - `NVR_CUDA_VENDOR_DIR`: CUDA vendor DLL directory
-
-NVR does not download model weights. It launches the exact local GGUF path you provide. A successful server start is not itself a benchmark; measure prompt and generation throughput separately under matched settings.
 
 ## Repository layout
 
