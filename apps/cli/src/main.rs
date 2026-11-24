@@ -67,7 +67,9 @@ fn run_model(args: Vec<String>) -> Result<()> {
     let mut args = args.into_iter();
     let model_key = args.next().context("Expected model key: qwen3_8_27b")?;
     if model_key != "qwen3_8_27b" {
-        bail!("Unknown or not-yet-enabled local model '{model_key}'. Currently enabled: qwen3_8_27b");
+        bail!(
+            "Unknown or not-yet-enabled local model '{model_key}'. Currently enabled: qwen3_8_27b"
+        );
     }
 
     let mut model_path: Option<PathBuf> = None;
@@ -79,7 +81,9 @@ fn run_model(args: Vec<String>) -> Result<()> {
     let mut gpu_layers: u32 = 999;
 
     while let Some(flag) = args.next() {
-        let value = args.next().with_context(|| format!("Missing value for {flag}"))?;
+        let value = args
+            .next()
+            .with_context(|| format!("Missing value for {flag}"))?;
         match flag.as_str() {
             "--model" => model_path = Some(PathBuf::from(value)),
             "--backend" => backend_path = Some(PathBuf::from(value)),
